@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rafi Ahmad Fabiannaufal — Instrumentation &amp; Control</title>
+<meta name="description" content="Electrical engineering undergraduate at Institut Teknologi Bandung. Measurement, instrumentation, control systems and data quality.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF1F0;
+  --paper-2:#F7F9F8;
+  --ink:#0E161B;
+  --ink-2:#3C4C53;
+  --muted:#6B7C82;
+  --grid:#CFD9D7;
+  --rule:#B9C6C3;
+  --fault:#AE2A24;
+  --good:#0B6F62;
+  --max:1120px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:16px; line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--max); margin:0 auto; padding:0 28px}
+a{color:inherit}
+h1,h2,h3{font-family:"IBM Plex Sans Condensed",sans-serif; margin:0; line-height:1.08; letter-spacing:-.01em}
+
+/* ---------- eyebrow / section label ---------- */
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:500;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+  display:flex; align-items:center; gap:14px; margin-bottom:22px;
+}
+.eyebrow::after{content:""; flex:1; height:1px; background:var(--rule)}
+
+/* ---------- header ---------- */
+header{border-bottom:1px solid var(--rule); background:var(--paper)}
+.bar{display:flex; justify-content:space-between; align-items:baseline; gap:20px; padding:20px 0; flex-wrap:wrap}
+.mark{font-family:"IBM Plex Mono",monospace; font-size:12.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase}
+nav{display:flex; gap:22px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em; text-transform:uppercase}
+nav a{color:var(--muted); text-decoration:none; padding-bottom:2px; border-bottom:1px solid transparent; transition:color .18s, border-color .18s}
+nav a:hover,nav a:focus-visible{color:var(--ink); border-color:var(--fault)}
+
+/* ---------- hero ---------- */
+.hero{padding:74px 0 18px}
+.hero h1{font-size:clamp(38px,6.4vw,74px); font-weight:700; max-width:17ch}
+.hero h1 em{font-style:normal; color:var(--fault)}
+.lede{margin:26px 0 0; max-width:60ch; font-size:17.5px; color:var(--ink-2)}
+.who{
+  margin-top:26px; font-family:"IBM Plex Mono",monospace; font-size:12.5px;
+  letter-spacing:.05em; color:var(--muted); display:flex; flex-wrap:wrap; gap:8px 20px;
+}
+
+/* ---------- signature plot ---------- */
+.plot-shell{margin:52px 0 8px; background:var(--paper-2); border:1px solid var(--rule); padding:20px 18px 8px}
+.plot-head{
+  display:flex; justify-content:space-between; align-items:flex-start; gap:18px;
+  flex-wrap:wrap; padding:0 6px 14px; border-bottom:1px solid var(--rule); margin-bottom:12px;
+}
+.plot-title{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2)}
+.legend{display:flex; gap:20px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted)}
+.legend span{display:flex; align-items:center; gap:7px; white-space:nowrap}
+.swatch{width:16px; height:2.5px; display:inline-block}
+svg.plot{display:block; width:100%; height:auto}
+.trace{fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round}
+.trace-a{stroke:var(--fault)}
+.trace-b{stroke:var(--good)}
+.gridline{stroke:var(--grid); stroke-width:1}
+.axis{stroke:var(--rule); stroke-width:1.2}
+.setpoint{stroke:var(--ink-2); stroke-width:1; stroke-dasharray:5 4; opacity:.6}
+.band{fill:var(--good); opacity:.09}
+.tick{font-family:"IBM Plex Mono",monospace; font-size:11px; fill:var(--muted)}
+.callout{font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:500}
+.callout-a{fill:var(--fault)}
+.callout-b{fill:var(--good)}
+.leader{stroke-width:1; stroke-dasharray:3 3}
+
+/* draw-on animation */
+@media (prefers-reduced-motion:no-preference){
+  .trace{stroke-dasharray:var(--len); stroke-dashoffset:var(--len); animation:draw 1.5s cubic-bezier(.4,0,.2,1) forwards}
+  .trace-b{animation-delay:.85s}
+  .anno{opacity:0; animation:fade .6s ease forwards}
+  .anno-a{animation-delay:1.35s}
+  .anno-b{animation-delay:2.25s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes fade{to{opacity:1}}
+}
+
+.plot-caption{
+  padding:14px 6px 10px; font-size:14.5px; color:var(--ink-2); max-width:78ch;
+  border-top:1px solid var(--rule); margin-top:4px;
+}
+
+/* ---------- sections ---------- */
+section{padding:76px 0; border-top:1px solid var(--rule)}
+section:first-of-type{border-top:none}
+h2{font-size:clamp(26px,3.4vw,38px); font-weight:600; max-width:22ch}
+.sec-lede{margin:18px 0 0; max-width:66ch; color:var(--ink-2)}
+
+/* ---------- entries ---------- */
+.entry{padding:38px 0; border-top:1px solid var(--rule)}
+.entry:first-of-type{border-top:none; padding-top:26px}
+.entry-top{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap}
+.entry h3{font-size:22px; font-weight:600; max-width:34ch}
+.entry-meta{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); white-space:nowrap}
+.entry p{margin:14px 0 0; max-width:70ch; color:var(--ink-2)}
+.entry p.turn{color:var(--ink)}
+.entry p.turn strong{font-weight:600}
+
+/* readout strip: the structural device */
+.readout{
+  display:flex; flex-wrap:wrap; gap:0; margin-top:24px;
+  border:1px solid var(--rule); background:var(--paper-2);
+}
+.cell{flex:1 1 150px; padding:13px 16px; border-right:1px solid var(--rule)}
+.cell:last-child{border-right:none}
+.cell dt{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin:0 0 5px}
+.cell dd{margin:0; font-family:"IBM Plex Mono",monospace; font-size:17px; font-weight:500; color:var(--ink)}
+.cell dd.hi{color:var(--good)}
+.cell dd.lo{color:var(--fault)}
+
+/* ---------- toolbox ---------- */
+.tool-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin-top:30px}
+.tool{background:var(--paper); padding:22px 20px}
+.tool h4{margin:0 0 10px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--fault); font-weight:600}
+.tool p{margin:0; font-size:14.6px; color:var(--ink-2)}
+
+/* ---------- contact ---------- */
+.contact-list{list-style:none; padding:0; margin:32px 0 0; max-width:640px}
+.contact-list li{border-top:1px solid var(--rule); padding:16px 0; display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap}
+.contact-list li:last-child{border-bottom:1px solid var(--rule)}
+.contact-list .ck{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted)}
+.contact-list a{font-family:"IBM Plex Mono",monospace; font-size:15px; text-decoration:none; border-bottom:1px solid var(--rule); transition:border-color .18s}
+.contact-list a:hover,.contact-list a:focus-visible{border-color:var(--fault)}
+
+footer{border-top:1px solid var(--rule); padding:26px 0 44px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.08em; color:var(--muted); text-transform:uppercase}
+
+:focus-visible{outline:2px solid var(--fault); outline-offset:3px}
+
+/* below 700px the SVG scales down until callout text is unreadable:
+   drop the in-plot annotations and restate the numbers as a readout */
+.plot-readout{display:none}
+@media (max-width:700px){
+  .callout,.leader,.anno circle{display:none}
+  .plot-readout{display:flex; flex-wrap:wrap; margin:0; border-top:1px solid var(--rule)}
+}
+@media (max-width:640px){
+  .hero{padding:48px 0 8px}
+  section{padding:56px 0}
+  .cell{flex:1 1 50%; border-bottom:1px solid var(--rule)}
+  .legend{gap:12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <span class="mark">Rafi Ahmad Fabiannaufal</span>
+    <nav>
+      <a href="#now">Now</a>
+      <a href="#work">Work</a>
+      <a href="#method">Method</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <h1>The fix that looks right is usually <em>not</em> the fix.</h1>
+    <p class="lede">
+      I am an electrical engineering undergraduate at Institut Teknologi Bandung.
+      My discipline is measurement: build the instrument, calibrate it against a reference,
+      and state the uncertainty on the number it produces. Then test it against faults
+      whose answers you already know.
+    </p>
+    <div class="who">
+      <span>Bandung, Indonesia</span>
+      <span>Instrumentation &amp; control</span>
+      <span>Data quality</span>
+      <span>Embedded systems</span>
+    </div>
+  </div>
+
+  <div class="plot-shell">
+    <div class="plot-head">
+      <span class="plot-title">Fig. 1 — Magnetic levitation, closed-loop step response</span>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--fault)"></i> First design</span>
+        <span><i class="swatch" style="background:var(--good)"></i> After pre-filter</span>
+      </div>
+    </div>
+
+    <svg class="plot" viewBox="0 0 900 380" role="img"
+         aria-label="Step response plot. The first controller design overshoots the setpoint by 239 percent and oscillates. After adding a pre-filter, overshoot is 4.4 percent and the response settles in 0.63 seconds.">
+      <!-- horizontal gridlines -->
+      <line class="gridline" x1="62" y1="88.9"  x2="872" y2="88.9"/>
+      <line class="gridline" x1="62" y1="162.0" x2="872" y2="162.0"/>
+      <line class="gridline" x1="62" y1="308.4" x2="872" y2="308.4"/>
+      <!-- 2% settling band -->
+      <rect class="band" x="62" y="233.8" width="810" height="2.9"/>
+      <!-- setpoint -->
+      <line class="setpoint" x1="62" y1="235.2" x2="872" y2="235.2"/>
+      <!-- axes -->
+      <line class="axis" x1="62" y1="34" x2="62" y2="334"/>
+      <line class="axis" x1="62" y1="334" x2="872" y2="334"/>
+      <!-- y ticks -->
+      <text class="tick" x="52" y="93"  text-anchor="end">3.0</text>
+      <text class="tick" x="52" y="166" text-anchor="end">2.0</text>
+      <text class="tick" x="52" y="239" text-anchor="end">1.0</text>
+      <text class="tick" x="52" y="312" text-anchor="end">0.0</text>
+      <!-- x ticks -->
+      <text class="tick" x="62"  y="352" text-anchor="middle">0</text>
+      <text class="tick" x="315" y="352" text-anchor="middle">0.5</text>
+      <text class="tick" x="569" y="352" text-anchor="middle">1.0</text>
+      <text class="tick" x="822" y="352" text-anchor="middle">1.5</text>
+      <text class="tick" x="467" y="371" text-anchor="middle">time (s)</text>
+
+      <!-- traces -->
+      <path class="trace trace-a" id="tA" d="M 62.0 308.4 L 63.4 295.0 L 64.9 282.0 L 66.3 269.6 L 67.8 257.5 L 69.2 246.0 L 70.7 234.9 L 72.1 224.2 L 73.6 214.0 L 75.0 204.1 L 76.5 194.7 L 77.9 185.7 L 79.4 177.1 L 80.8 168.8 L 82.2 161.0 L 83.7 153.5 L 85.1 146.3 L 86.6 139.5 L 88.0 133.1 L 89.5 127.0 L 90.9 121.2 L 92.4 115.7 L 93.8 110.6 L 95.3 105.7 L 96.7 101.2 L 98.2 96.9 L 99.6 92.9 L 101.1 89.2 L 102.5 85.7 L 103.9 82.5 L 105.4 79.6 L 106.8 76.8 L 108.3 74.4 L 109.7 72.1 L 111.2 70.1 L 112.6 68.2 L 114.1 66.6 L 115.5 65.2 L 117.0 64.0 L 118.4 62.9 L 119.9 62.0 L 121.3 61.3 L 122.8 60.8 L 124.2 60.5 L 125.6 60.2 L 127.1 60.2 L 128.5 60.3 L 130.0 60.5 L 131.4 60.8 L 132.9 61.3 L 134.3 61.9 L 135.8 62.6 L 137.2 63.4 L 138.7 64.3 L 140.1 65.3 L 141.6 66.5 L 143.0 67.7 L 144.4 69.0 L 145.9 70.4 L 147.3 71.8 L 148.8 73.3 L 150.2 74.9 L 151.7 76.6 L 153.1 78.3 L 154.6 80.1 L 156.0 82.0 L 157.5 83.9 L 158.9 85.8 L 160.4 87.8 L 161.8 89.8 L 163.2 91.9 L 164.7 93.9 L 166.1 96.1 L 167.6 98.2 L 169.0 100.4 L 170.5 102.6 L 171.9 104.8 L 173.4 107.1 L 174.8 109.3 L 176.3 111.6 L 177.7 113.8 L 179.2 116.1 L 180.6 118.4 L 182.1 120.7 L 183.5 123.0 L 184.9 125.3 L 186.4 127.6 L 187.8 129.9 L 189.3 132.1 L 190.7 134.4 L 192.2 136.7 L 193.6 138.9 L 195.1 141.2 L 196.5 143.4 L 198.0 145.6 L 199.4 147.8 L 200.9 150.0 L 202.3 152.2 L 203.8 154.3 L 205.2 156.5 L 206.6 158.6 L 208.1 160.7 L 209.5 162.7 L 211.0 164.8 L 212.4 166.8 L 213.9 168.8 L 215.3 170.8 L 216.8 172.7 L 218.2 174.6 L 219.7 176.5 L 221.1 178.4 L 222.6 180.2 L 224.0 182.0 L 225.4 183.8 L 226.9 185.6 L 228.3 187.3 L 229.8 189.0 L 231.2 190.6 L 232.7 192.3 L 234.1 193.9 L 235.6 195.5 L 237.0 197.0 L 238.5 198.5 L 239.9 200.0 L 241.4 201.5 L 242.8 202.9 L 244.2 204.3 L 245.7 205.6 L 247.1 207.0 L 248.6 208.3 L 250.0 209.6 L 251.5 210.8 L 252.9 212.0 L 254.4 213.2 L 255.8 214.4 L 257.3 215.5 L 258.7 216.6 L 260.2 217.7 L 261.6 218.7 L 263.1 219.7 L 264.5 220.7 L 265.9 221.7 L 267.4 222.6 L 268.8 223.5 L 270.3 224.4 L 271.7 225.3 L 273.2 226.1 L 274.6 226.9 L 276.1 227.7 L 277.5 228.4 L 279.0 229.2 L 280.4 229.9 L 281.9 230.6 L 283.3 231.2 L 284.8 231.9 L 286.2 232.5 L 287.6 233.1 L 289.1 233.7 L 290.5 234.2 L 292.0 234.7 L 293.4 235.3 L 294.9 235.7 L 296.3 236.2 L 297.8 236.7 L 299.2 237.1 L 300.7 237.5 L 302.1 237.9 L 303.6 238.3 L 305.0 238.6 L 306.4 239.0 L 307.9 239.3 L 309.3 239.6 L 310.8 239.9 L 312.2 240.2 L 313.7 240.5 L 315.1 240.7 L 316.6 241.0 L 318.0 241.2 L 319.5 241.4 L 320.9 241.6 L 322.4 241.8 L 323.8 241.9 L 325.2 242.1 L 326.7 242.2 L 328.1 242.4 L 329.6 242.5 L 331.0 242.6 L 332.5 242.7 L 333.9 242.8 L 335.4 242.9 L 336.8 243.0 L 338.3 243.0 L 339.7 243.1 L 341.2 243.1 L 342.6 243.2 L 344.1 243.2 L 345.5 243.2 L 346.9 243.3 L 348.4 243.3 L 349.8 243.3 L 351.3 243.3 L 352.7 243.3 L 354.2 243.2 L 355.6 243.2 L 357.1 243.2 L 358.5 243.2 L 360.0 243.1 L 361.4 243.1 L 362.9 243.0 L 364.3 243.0 L 365.7 242.9 L 367.2 242.9 L 368.6 242.8 L 370.1 242.7 L 371.5 242.7 L 373.0 242.6 L 374.4 242.5 L 375.9 242.4 L 377.3 242.3 L 378.8 242.3 L 380.2 242.2 L 381.7 242.1 L 383.1 242.0 L 384.6 241.9 L 386.0 241.8 L 387.4 241.7 L 388.9 241.6 L 390.3 241.5 L 391.8 241.4 L 393.2 241.3 L 394.7 241.2 L 396.1 241.1 L 397.6 241.0 L 399.0 240.9 L 400.5 240.8 L 401.9 240.7 L 403.4 240.6 L 404.8 240.5 L 406.2 240.4 L 407.7 240.3 L 409.1 240.2 L 410.6 240.1 L 412.0 240.0 L 413.5 239.9 L 414.9 239.7 L 416.4 239.6 L 417.8 239.5 L 419.3 239.4 L 420.7 239.3 L 422.2 239.2 L 423.6 239.1 L 425.1 239.0 L 426.5 238.9 L 427.9 238.8 L 429.4 238.7 L 430.8 238.6 L 432.3 238.5 L 433.7 238.5 L 435.2 238.4 L 436.6 238.3 L 438.1 238.2 L 439.5 238.1 L 441.0 238.0 L 442.4 237.9 L 443.9 237.8 L 445.3 237.7 L 446.8 237.7 L 448.2 237.6 L 449.6 237.5 L 451.1 237.4 L 452.5 237.3 L 454.0 237.3 L 455.4 237.2 L 456.9 237.1 L 458.3 237.0 L 459.8 237.0 L 461.2 236.9 L 462.7 236.8 L 464.1 236.8 L 465.6 236.7 L 467.0 236.6 L 468.4 236.6 L 469.9 236.5 L 471.3 236.5 L 472.8 236.4 L 474.2 236.3 L 475.7 236.3 L 477.1 236.2 L 478.6 236.2 L 480.0 236.1 L 481.5 236.1 L 482.9 236.0 L 484.4 236.0 L 485.8 235.9 L 487.2 235.9 L 488.7 235.8 L 490.1 235.8 L 491.6 235.8 L 493.0 235.7 L 494.5 235.7 L 495.9 235.6 L 497.4 235.6 L 498.8 235.6 L 500.3 235.5 L 501.7 235.5 L 503.2 235.5 L 504.6 235.4 L 506.1 235.4 L 507.5 235.4 L 508.9 235.3 L 510.4 235.3 L 511.8 235.3 L 513.3 235.3 L 514.7 235.2 L 516.2 235.2 L 517.6 235.2 L 519.1 235.2 L 520.5 235.2 L 522.0 235.1 L 523.4 235.1 L 524.9 235.1 L 526.3 235.1 L 527.8 235.1 L 529.2 235.0 L 530.6 235.0 L 532.1 235.0 L 533.5 235.0 L 535.0 235.0 L 536.4 235.0 L 537.9 235.0 L 539.3 235.0 L 540.8 234.9 L 542.2 234.9 L 543.7 234.9 L 545.1 234.9 L 546.6 234.9 L 548.0 234.9 L 549.4 234.9 L 550.9 234.9 L 552.3 234.9 L 553.8 234.9 L 555.2 234.9 L 556.7 234.9 L 558.1 234.9 L 559.6 234.9 L 561.0 234.9 L 562.5 234.9 L 563.9 234.9 L 565.4 234.9 L 566.8 234.9 L 568.2 234.9 L 569.7 234.8 L 571.1 234.8 L 572.6 234.8 L 574.0 234.8 L 575.5 234.8 L 576.9 234.9 L 578.4 234.9 L 579.8 234.9 L 581.3 234.9 L 582.7 234.9 L 584.2 234.9 L 585.6 234.9 L 587.1 234.9 L 588.5 234.9 L 589.9 234.9 L 591.4 234.9 L 592.8 234.9 L 594.3 234.9 L 595.7 234.9 L 597.2 234.9 L 598.6 234.9 L 600.1 234.9 L 601.5 234.9 L 603.0 234.9 L 604.4 234.9 L 605.9 234.9 L 607.3 234.9 L 608.8 234.9 L 610.2 234.9 L 611.6 234.9 L 613.1 234.9 L 614.5 234.9 L 616.0 234.9 L 617.4 234.9 L 618.9 234.9 L 620.3 235.0 L 621.8 235.0 L 623.2 235.0 L 624.7 235.0 L 626.1 235.0 L 627.6 235.0 L 629.0 235.0 L 630.4 235.0 L 631.9 235.0 L 633.3 235.0 L 634.8 235.0 L 636.2 235.0 L 637.7 235.0 L 639.1 235.0 L 640.6 235.0 L 642.0 235.0 L 643.5 235.0 L 644.9 235.0 L 646.4 235.0 L 647.8 235.0 L 649.3 235.0 L 650.7 235.1 L 652.1 235.1 L 653.6 235.1 L 655.0 235.1 L 656.5 235.1 L 657.9 235.1 L 659.4 235.1 L 660.8 235.1 L 662.3 235.1 L 663.7 235.1 L 665.2 235.1 L 666.6 235.1 L 668.1 235.1 L 669.5 235.1 L 670.9 235.1 L 672.4 235.1 L 673.8 235.1 L 675.3 235.1 L 676.7 235.1 L 678.2 235.1 L 679.6 235.1 L 681.1 235.1 L 682.5 235.1 L 684.0 235.1 L 685.4 235.1 L 686.9 235.1 L 688.3 235.2 L 689.8 235.2 L 691.2 235.2 L 692.6 235.2 L 694.1 235.2 L 695.5 235.2 L 697.0 235.2 L 698.4 235.2 L 699.9 235.2 L 701.3 235.2 L 702.8 235.2 L 704.2 235.2 L 705.7 235.2 L 707.1 235.2 L 708.6 235.2 L 710.0 235.2 L 711.4 235.2 L 712.9 235.2 L 714.3 235.2 L 715.8 235.2 L 717.2 235.2 L 718.7 235.2 L 720.1 235.2 L 721.6 235.2 L 723.0 235.2 L 724.5 235.2 L 725.9 235.2 L 727.4 235.2 L 728.8 235.2 L 730.2 235.2 L 731.7 235.2 L 733.1 235.2 L 734.6 235.2 L 736.0 235.2 L 737.5 235.2 L 738.9 235.2 L 740.4 235.2 L 741.8 235.2 L 743.3 235.2 L 744.7 235.2 L 746.2 235.2 L 747.6 235.2 L 749.1 235.2 L 750.5 235.2 L 751.9 235.2 L 753.4 235.2 L 754.8 235.2 L 756.3 235.2 L 757.7 235.2 L 759.2 235.2 L 760.6 235.2 L 762.1 235.2 L 763.5 235.2 L 765.0 235.2 L 766.4 235.2 L 767.9 235.2 L 769.3 235.2 L 770.7 235.2 L 772.2 235.2 L 773.6 235.2 L 775.1 235.2 L 776.5 235.2 L 778.0 235.2 L 779.4 235.2 L 780.9 235.2 L 782.3 235.2 L 783.8 235.2 L 785.2 235.2 L 786.7 235.2 L 788.1 235.2 L 789.6 235.2 L 791.0 235.2 L 792.4 235.2 L 793.9 235.2 L 795.3 235.2 L 796.8 235.2 L 798.2 235.2 L 799.7 235.2 L 801.1 235.2 L 802.6 235.2 L 804.0 235.2 L 805.5 235.2 L 806.9 235.2 L 808.4 235.2 L 809.8 235.2 L 811.2 235.2 L 812.7 235.2 L 814.1 235.2 L 815.6 235.2 L 817.0 235.2 L 818.5 235.2 L 819.9 235.2 L 821.4 235.2 L 822.8 235.2 L 824.3 235.2 L 825.7 235.2 L 827.2 235.2 L 828.6 235.2 L 830.1 235.2 L 831.5 235.2 L 832.9 235.2 L 834.4 235.2 L 835.8 235.2 L 837.3 235.2 L 838.7 235.2 L 840.2 235.2 L 841.6 235.2 L 843.1 235.2 L 844.5 235.2 L 846.0 235.2 L 847.4 235.2 L 848.9 235.2 L 850.3 235.2 L 851.8 235.2 L 853.2 235.2 L 854.6 235.2 L 856.1 235.2 L 857.5 235.2 L 859.0 235.2 L 860.4 235.2 L 861.9 235.2 L 863.3 235.2 L 864.8 235.2 L 866.2 235.2 L 867.7 235.2 L 869.1 235.2 L 870.6 235.2 L 872.0 235.2"/>
+      <path class="trace trace-b" id="tB" d="M 62.0 308.4 L 63.4 308.4 L 64.9 308.3 L 66.3 308.1 L 67.8 307.9 L 69.2 307.7 L 70.7 307.4 L 72.1 307.1 L 73.6 306.7 L 75.0 306.2 L 76.5 305.8 L 77.9 305.3 L 79.4 304.7 L 80.8 304.2 L 82.2 303.6 L 83.7 302.9 L 85.1 302.2 L 86.6 301.6 L 88.0 300.8 L 89.5 300.1 L 90.9 299.3 L 92.4 298.5 L 93.8 297.7 L 95.3 296.9 L 96.7 296.0 L 98.2 295.2 L 99.6 294.3 L 101.1 293.4 L 102.5 292.5 L 103.9 291.6 L 105.4 290.7 L 106.8 289.8 L 108.3 288.8 L 109.7 287.9 L 111.2 287.0 L 112.6 286.0 L 114.1 285.1 L 115.5 284.1 L 117.0 283.1 L 118.4 282.2 L 119.9 281.2 L 121.3 280.3 L 122.8 279.3 L 124.2 278.4 L 125.6 277.4 L 127.1 276.5 L 128.5 275.5 L 130.0 274.6 L 131.4 273.6 L 132.9 272.7 L 134.3 271.8 L 135.8 270.9 L 137.2 270.0 L 138.7 269.1 L 140.1 268.2 L 141.6 267.3 L 143.0 266.4 L 144.4 265.6 L 145.9 264.7 L 147.3 263.9 L 148.8 263.0 L 150.2 262.2 L 151.7 261.4 L 153.1 260.6 L 154.6 259.8 L 156.0 259.0 L 157.5 258.2 L 158.9 257.5 L 160.4 256.7 L 161.8 256.0 L 163.2 255.3 L 164.7 254.6 L 166.1 253.9 L 167.6 253.2 L 169.0 252.5 L 170.5 251.9 L 171.9 251.2 L 173.4 250.6 L 174.8 250.0 L 176.3 249.4 L 177.7 248.8 L 179.2 248.2 L 180.6 247.6 L 182.1 247.1 L 183.5 246.5 L 184.9 246.0 L 186.4 245.4 L 187.8 244.9 L 189.3 244.4 L 190.7 244.0 L 192.2 243.5 L 193.6 243.0 L 195.1 242.6 L 196.5 242.1 L 198.0 241.7 L 199.4 241.3 L 200.9 240.9 L 202.3 240.5 L 203.8 240.1 L 205.2 239.8 L 206.6 239.4 L 208.1 239.0 L 209.5 238.7 L 211.0 238.4 L 212.4 238.1 L 213.9 237.8 L 215.3 237.5 L 216.8 237.2 L 218.2 236.9 L 219.7 236.6 L 221.1 236.4 L 222.6 236.1 L 224.0 235.9 L 225.4 235.7 L 226.9 235.4 L 228.3 235.2 L 229.8 235.0 L 231.2 234.8 L 232.7 234.6 L 234.1 234.4 L 235.6 234.3 L 237.0 234.1 L 238.5 233.9 L 239.9 233.8 L 241.4 233.7 L 242.8 233.5 L 244.2 233.4 L 245.7 233.3 L 247.1 233.1 L 248.6 233.0 L 250.0 232.9 L 251.5 232.8 L 252.9 232.7 L 254.4 232.6 L 255.8 232.6 L 257.3 232.5 L 258.7 232.4 L 260.2 232.3 L 261.6 232.3 L 263.1 232.2 L 264.5 232.2 L 265.9 232.1 L 267.4 232.1 L 268.8 232.0 L 270.3 232.0 L 271.7 232.0 L 273.2 232.0 L 274.6 231.9 L 276.1 231.9 L 277.5 231.9 L 279.0 231.9 L 280.4 231.9 L 281.9 231.9 L 283.3 231.9 L 284.8 231.9 L 286.2 231.9 L 287.6 231.9 L 289.1 231.9 L 290.5 231.9 L 292.0 231.9 L 293.4 231.9 L 294.9 231.9 L 296.3 231.9 L 297.8 232.0 L 299.2 232.0 L 300.7 232.0 L 302.1 232.0 L 303.6 232.0 L 305.0 232.1 L 306.4 232.1 L 307.9 232.1 L 309.3 232.2 L 310.8 232.2 L 312.2 232.2 L 313.7 232.3 L 315.1 232.3 L 316.6 232.3 L 318.0 232.4 L 319.5 232.4 L 320.9 232.5 L 322.4 232.5 L 323.8 232.5 L 325.2 232.6 L 326.7 232.6 L 328.1 232.7 L 329.6 232.7 L 331.0 232.8 L 332.5 232.8 L 333.9 232.8 L 335.4 232.9 L 336.8 232.9 L 338.3 233.0 L 339.7 233.0 L 341.2 233.1 L 342.6 233.1 L 344.1 233.1 L 345.5 233.2 L 346.9 233.2 L 348.4 233.3 L 349.8 233.3 L 351.3 233.4 L 352.7 233.4 L 354.2 233.5 L 355.6 233.5 L 357.1 233.5 L 358.5 233.6 L 360.0 233.6 L 361.4 233.7 L 362.9 233.7 L 364.3 233.7 L 365.7 233.8 L 367.2 233.8 L 368.6 233.9 L 370.1 233.9 L 371.5 233.9 L 373.0 234.0 L 374.4 234.0 L 375.9 234.1 L 377.3 234.1 L 378.8 234.1 L 380.2 234.2 L 381.7 234.2 L 383.1 234.2 L 384.6 234.3 L 386.0 234.3 L 387.4 234.3 L 388.9 234.4 L 390.3 234.4 L 391.8 234.4 L 393.2 234.5 L 394.7 234.5 L 396.1 234.5 L 397.6 234.5 L 399.0 234.6 L 400.5 234.6 L 401.9 234.6 L 403.4 234.7 L 404.8 234.7 L 406.2 234.7 L 407.7 234.7 L 409.1 234.7 L 410.6 234.8 L 412.0 234.8 L 413.5 234.8 L 414.9 234.8 L 416.4 234.9 L 417.8 234.9 L 419.3 234.9 L 420.7 234.9 L 422.2 234.9 L 423.6 235.0 L 425.1 235.0 L 426.5 235.0 L 427.9 235.0 L 429.4 235.0 L 430.8 235.0 L 432.3 235.1 L 433.7 235.1 L 435.2 235.1 L 436.6 235.1 L 438.1 235.1 L 439.5 235.1 L 441.0 235.1 L 442.4 235.2 L 443.9 235.2 L 445.3 235.2 L 446.8 235.2 L 448.2 235.2 L 449.6 235.2 L 451.1 235.2 L 452.5 235.2 L 454.0 235.2 L 455.4 235.2 L 456.9 235.3 L 458.3 235.3 L 459.8 235.3 L 461.2 235.3 L 462.7 235.3 L 464.1 235.3 L 465.6 235.3 L 467.0 235.3 L 468.4 235.3 L 469.9 235.3 L 471.3 235.3 L 472.8 235.3 L 474.2 235.3 L 475.7 235.3 L 477.1 235.3 L 478.6 235.3 L 480.0 235.3 L 481.5 235.3 L 482.9 235.4 L 484.4 235.4 L 485.8 235.4 L 487.2 235.4 L 488.7 235.4 L 490.1 235.4 L 491.6 235.4 L 493.0 235.4 L 494.5 235.4 L 495.9 235.4 L 497.4 235.4 L 498.8 235.4 L 500.3 235.4 L 501.7 235.4 L 503.2 235.4 L 504.6 235.4 L 506.1 235.4 L 507.5 235.4 L 508.9 235.4 L 510.4 235.4 L 511.8 235.4 L 513.3 235.4 L 514.7 235.4 L 516.2 235.4 L 517.6 235.4 L 519.1 235.4 L 520.5 235.4 L 522.0 235.4 L 523.4 235.4 L 524.9 235.4 L 526.3 235.4 L 527.8 235.4 L 529.2 235.4 L 530.6 235.4 L 532.1 235.4 L 533.5 235.4 L 535.0 235.4 L 536.4 235.4 L 537.9 235.4 L 539.3 235.4 L 540.8 235.3 L 542.2 235.3 L 543.7 235.3 L 545.1 235.3 L 546.6 235.3 L 548.0 235.3 L 549.4 235.3 L 550.9 235.3 L 552.3 235.3 L 553.8 235.3 L 555.2 235.3 L 556.7 235.3 L 558.1 235.3 L 559.6 235.3 L 561.0 235.3 L 562.5 235.3 L 563.9 235.3 L 565.4 235.3 L 566.8 235.3 L 568.2 235.3 L 569.7 235.3 L 571.1 235.3 L 572.6 235.3 L 574.0 235.3 L 575.5 235.3 L 576.9 235.3 L 578.4 235.3 L 579.8 235.3 L 581.3 235.3 L 582.7 235.3 L 584.2 235.3 L 585.6 235.3 L 587.1 235.3 L 588.5 235.3 L 589.9 235.3 L 591.4 235.3 L 592.8 235.3 L 594.3 235.3 L 595.7 235.3 L 597.2 235.3 L 598.6 235.3 L 600.1 235.3 L 601.5 235.3 L 603.0 235.3 L 604.4 235.3 L 605.9 235.3 L 607.3 235.3 L 608.8 235.3 L 610.2 235.3 L 611.6 235.3 L 613.1 235.3 L 614.5 235.3 L 616.0 235.3 L 617.4 235.3 L 618.9 235.3 L 620.3 235.3 L 621.8 235.2 L 623.2 235.2 L 624.7 235.2 L 626.1 235.2 L 627.6 235.2 L 629.0 235.2 L 630.4 235.2 L 631.9 235.2 L 633.3 235.2 L 634.8 235.2 L 636.2 235.2 L 637.7 235.2 L 639.1 235.2 L 640.6 235.2 L 642.0 235.2 L 643.5 235.2 L 644.9 235.2 L 646.4 235.2 L 647.8 235.2 L 649.3 235.2 L 650.7 235.2 L 652.1 235.2 L 653.6 235.2 L 655.0 235.2 L 656.5 235.2 L 657.9 235.2 L 659.4 235.2 L 660.8 235.2 L 662.3 235.2 L 663.7 235.2 L 665.2 235.2 L 666.6 235.2 L 668.1 235.2 L 669.5 235.2 L 670.9 235.2 L 672.4 235.2 L 673.8 235.2 L 675.3 235.2 L 676.7 235.2 L 678.2 235.2 L 679.6 235.2 L 681.1 235.2 L 682.5 235.2 L 684.0 235.2 L 685.4 235.2 L 686.9 235.2 L 688.3 235.2 L 689.8 235.2 L 691.2 235.2 L 692.6 235.2 L 694.1 235.2 L 695.5 235.2 L 697.0 235.2 L 698.4 235.2 L 699.9 235.2 L 701.3 235.2 L 702.8 235.2 L 704.2 235.2 L 705.7 235.2 L 707.1 235.2 L 708.6 235.2 L 710.0 235.2 L 711.4 235.2 L 712.9 235.2 L 714.3 235.2 L 715.8 235.2 L 717.2 235.2 L 718.7 235.2 L 720.1 235.2 L 721.6 235.2 L 723.0 235.2 L 724.5 235.2 L 725.9 235.2 L 727.4 235.2 L 728.8 235.2 L 730.2 235.2 L 731.7 235.2 L 733.1 235.2 L 734.6 235.2 L 736.0 235.2 L 737.5 235.2 L 738.9 235.2 L 740.4 235.2 L 741.8 235.2 L 743.3 235.2 L 744.7 235.2 L 746.2 235.2 L 747.6 235.2 L 749.1 235.2 L 750.5 235.2 L 751.9 235.2 L 753.4 235.2 L 754.8 235.2 L 756.3 235.2 L 757.7 235.2 L 759.2 235.2 L 760.6 235.2 L 762.1 235.2 L 763.5 235.2 L 765.0 235.2 L 766.4 235.2 L 767.9 235.2 L 769.3 235.2 L 770.7 235.2 L 772.2 235.2 L 773.6 235.2 L 775.1 235.2 L 776.5 235.2 L 778.0 235.2 L 779.4 235.2 L 780.9 235.2 L 782.3 235.2 L 783.8 235.2 L 785.2 235.2 L 786.7 235.2 L 788.1 235.2 L 789.6 235.2 L 791.0 235.2 L 792.4 235.2 L 793.9 235.2 L 795.3 235.2 L 796.8 235.2 L 798.2 235.2 L 799.7 235.2 L 801.1 235.2 L 802.6 235.2 L 804.0 235.2 L 805.5 235.2 L 806.9 235.2 L 808.4 235.2 L 809.8 235.2 L 811.2 235.2 L 812.7 235.2 L 814.1 235.2 L 815.6 235.2 L 817.0 235.2 L 818.5 235.2 L 819.9 235.2 L 821.4 235.2 L 822.8 235.2 L 824.3 235.2 L 825.7 235.2 L 827.2 235.2 L 828.6 235.2 L 830.1 235.2 L 831.5 235.2 L 832.9 235.2 L 834.4 235.2 L 835.8 235.2 L 837.3 235.2 L 838.7 235.2 L 840.2 235.2 L 841.6 235.2 L 843.1 235.2 L 844.5 235.2 L 846.0 235.2 L 847.4 235.2 L 848.9 235.2 L 850.3 235.2 L 851.8 235.2 L 853.2 235.2 L 854.6 235.2 L 856.1 235.2 L 857.5 235.2 L 859.0 235.2 L 860.4 235.2 L 861.9 235.2 L 863.3 235.2 L 864.8 235.2 L 866.2 235.2 L 867.7 235.2 L 869.1 235.2 L 870.6 235.2 L 872.0 235.2"/>
+
+      <!-- annotations -->
+      <g class="anno anno-a">
+        <circle cx="127" cy="53" r="3.4" fill="var(--fault)"/>
+        <line class="leader" x1="132" y1="53" x2="196" y2="53" stroke="var(--fault)"/>
+        <text class="callout callout-a" x="203" y="50">peak +239.23% overshoot</text>
+        <text class="callout callout-a" x="203" y="66" opacity=".72">controller zeros excited by step input</text>
+      </g>
+      <g class="anno anno-b">
+        <circle cx="380" cy="235" r="3.4" fill="var(--good)"/>
+        <line class="leader" x1="385" y1="248" x2="432" y2="284" stroke="var(--good)"/>
+        <text class="callout callout-b" x="438" y="288">4.409% overshoot, settles 0.6287 s</text>
+        <text class="callout callout-b" x="438" y="304" opacity=".72">pole placement preserved</text>
+      </g>
+    </svg>
+
+    <dl class="readout plot-readout" style="border-left:none;border-right:none;border-bottom:none">
+      <div class="cell"><dt>First design</dt><dd class="lo">+239.23%</dd></div>
+      <div class="cell"><dt>After pre-filter</dt><dd class="hi">+4.409%</dd></div>
+      <div class="cell"><dt>Settling time</dt><dd>0.6287 s</dd></div>
+      <div class="cell"><dt>Unstable pole</dt><dd>s = +40.41</dd></div>
+    </dl>
+
+    <p class="plot-caption">
+      The plant is open-loop unstable, with a right-half-plane pole at s&nbsp;=&nbsp;+40.41.
+      Detuning would have flattened the red curve and destroyed a pole placement I had designed
+      deliberately. The overshoot was not a gain problem. It came from the controller zeros being
+      excited by a discontinuous step input, so the countermeasure was a pre-filter cancelling
+      those zeros ahead of the summing junction.
+    </p>
+  </div>
+
+  <section id="now">
+    <p class="eyebrow">Currently</p>
+    <h2>Measuring whether a production line is telling the truth.</h2>
+    <p class="sec-lede">
+      Data Scientist Intern at PT&nbsp;Tricada Intronik (Tritronik), Bandung. I built a data quality
+      monitoring framework for a live telecommunications processing pipeline.
+    </p>
+
+    <div class="entry">
+      <div class="entry-top">
+        <h3>The monitor that reported normal while blind</h3>
+        <span class="entry-meta">2026 — present</span>
+      </div>
+      <p>
+        Ordinary status monitoring answers whether the line is running. It does not answer whether
+        what comes off the line is correct. I defined quality across four dimensions, instrumented
+        every stage in Python against a live Kafka broker and PostgreSQL database, and built
+        alerting that flags a developing problem before it becomes a defect.
+      </p>
+      <p class="turn">
+        Then I tested the framework against datasets with faults deliberately injected at known
+        type, magnitude and timing. <strong>One of them it could not see at all.</strong> When a source
+        stopped producing entirely, there was no data left to inspect, so the monitor reported
+        normal while structurally blind to the stoppage. Reindexing metric computation against a
+        complete expected interval grid fixed it without touching a single threshold.
+      </p>
+      <dl class="readout">
+        <div class="cell"><dt>Detection precision</dt><dd><span class="lo">71%</span> &rarr; <span class="hi">100%</span></dd></div>
+        <div class="cell"><dt>Thresholds changed</dt><dd>0</dd></div>
+        <div class="cell"><dt>Query time, 4M rows</dt><dd class="hi">29&times; faster</dd></div>
+        <div class="cell"><dt>Quality dimensions</dt><dd>4</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="work">
+    <p class="eyebrow">Selected work</p>
+    <h2>Instruments, and the numbers they are allowed to claim.</h2>
+
+    <div class="entry">
+      <div class="entry-top">
+        <h3>Precision NTC thermistor instrument</h3>
+        <span class="entry-meta">Instrumentation Systems, ITB</span>
+      </div>
+      <p>
+        A complete signal-conditioning front-end: a Wheatstone bridge feeding a high-CMRR
+        instrumentation amplifier, with Steinhart-Hart linearisation applied to the raw sensor
+        characteristic and multi-point calibration against certified references.
+      </p>
+      <p class="turn">
+        The part that matters is the last step. I produced a GUM-compliant uncertainty budget,
+        so every reading carries a stated confidence interval. <strong>A measurement without an
+        uncertainty is an opinion</strong>, and it cannot support a pass-fail decision.
+      </p>
+      <dl class="readout">
+        <div class="cell"><dt>Resolution</dt><dd class="hi">&lt; 0.1 &deg;C</dd></div>
+        <div class="cell"><dt>Calibration</dt><dd>Multi-point</dd></div>
+        <div class="cell"><dt>Uncertainty</dt><dd>GUM budget</dd></div>
+      </dl>
+    </div>
+
+    <div class="entry">
+      <div class="entry-top">
+        <h3>Nephro-Sync — wearable biosensor ecosystem</h3>
+        <span class="entry-meta">EPIDEMIC 2026, co-authored</span>
+      </div>
+      <p>
+        A conceptual wearable pairing a passive-sweat electrochemical urea sensor with 50&nbsp;kHz
+        segmental bioimpedance, for fluid-overload surveillance in pre-dialysis kidney patients.
+        I designed the sensing, control, edge and power layers.
+      </p>
+      <p class="turn">
+        Most of the engineering went nowhere near the headline feature. Flexible electrochemical
+        sensors drift with temperature, so a few degrees of skin microclimate change moves the
+        reading further than the clinical signal does. <strong>The dominant error source was the
+        thermometer, not the sensor.</strong> A PID-controlled heater holds the microclimate at
+        37&nbsp;&deg;C; a pi-filter keeps converter ripple out of the ADC.
+      </p>
+      <dl class="readout">
+        <div class="cell"><dt>Thermal setpoint</dt><dd>37 &deg;C, PID</dd></div>
+        <div class="cell"><dt>Supply target</dt><dd>93% boost</dd></div>
+        <div class="cell"><dt>Computation</dt><dd>On-device</dd></div>
+        <div class="cell"><dt>Status</dt><dd class="lo">Unvalidated</dd></div>
+      </dl>
+    </div>
+
+    <div class="entry">
+      <div class="entry-top">
+        <h3>SATU-TB — edge-AI tuberculosis screening</h3>
+        <span class="entry-meta">6th of 577 teams, national competition</span>
+      </div>
+      <p>
+        A low-cost screening device combining an I2S MEMS microphone for cough acoustics with a
+        MOS E-Nose array for exhaled volatile compounds, on a Raspberry Pi and Arduino
+        architecture. Moving feature extraction onto the device let it run where there is no
+        connectivity at all, which is exactly where the screening gap is.
+      </p>
+      <dl class="readout">
+        <div class="cell"><dt>RAM</dt><dd class="hi">&minus;50%</dd></div>
+        <div class="cell"><dt>Energy</dt><dd class="hi">20&times; lower</dd></div>
+        <div class="cell"><dt>Placed</dt><dd>6 / 577</dd></div>
+      </dl>
+    </div>
+
+    <div class="entry">
+      <div class="entry-top">
+        <h3>70 kV mesh network — N-2 contingency study</h3>
+        <span class="entry-meta">EL3017, ITB, team of 5</span>
+      </div>
+      <p>
+        Simulated every contingency combination across peak and night loading to verify the network
+        holds under simultaneous dual-feeder failure. Bus voltages stayed within 0.969 to 1.010&nbsp;pu
+        in all cases, confirming supply continuity rather than assuming it.
+      </p>
+      <dl class="readout">
+        <div class="cell"><dt>Redundancy</dt><dd>N&minus;2</dd></div>
+        <div class="cell"><dt>Voltage range</dt><dd class="hi">0.969 – 1.010 pu</dd></div>
+        <div class="cell"><dt>Cases</dt><dd>All contingencies</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="method">
+    <p class="eyebrow">How I work</p>
+    <h2>Three habits, and where each one came from.</h2>
+    <div class="tool-grid">
+      <div class="tool">
+        <h4>Go to the process</h4>
+        <p>The two defects I found at Tritronik were both invisible to reviewing the code. They
+        surfaced only because I ran the system against faults I had built myself, where I already
+        knew the correct answer.</p>
+      </div>
+      <div class="tool">
+        <h4>Cause, not symptom</h4>
+        <p>A 239% overshoot has an obvious workaround and a real cause, and they lead to different
+        places. Taking the workaround would have quietly undone a pole placement I had designed on
+        purpose.</p>
+      </div>
+      <div class="tool">
+        <h4>State the uncertainty</h4>
+        <p>Calibration traceability and an uncertainty budget are not paperwork around the
+        measurement. On anything that drives a decision, they are the measurement.</p>
+      </div>
+    </div>
+
+    <div class="tool-grid" style="margin-top:24px">
+      <div class="tool">
+        <h4>Instrumentation</h4>
+        <p>Signal conditioning, analog front-end design, calibration, GUM uncertainty budgeting,
+        sensor linearisation, LTspice, SPICE transient verification.</p>
+      </div>
+      <div class="tool">
+        <h4>Control</h4>
+        <p>PID design and tuning, pole placement, state-space modelling, stability analysis by root
+        locus, Bode and Nyquist. MATLAB and Simulink.</p>
+      </div>
+      <div class="tool">
+        <h4>Embedded</h4>
+        <p>Bare-metal C and C++, microcontrollers, I2C and SPI, DC-DC converters and ripple
+        filtering, ESP32, Arduino, Raspberry Pi.</p>
+      </div>
+      <div class="tool">
+        <h4>Data</h4>
+        <p>Python, pandas, SQL, PostgreSQL, Apache Kafka, Docker, Git, Linux. Fault-injection
+        validation and root-cause investigation.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <p class="eyebrow">Contact</p>
+    <h2>Open to internships in instrumentation, control, quality and manufacturing engineering.</h2>
+    <p class="sec-lede">Based in Bandung, fully mobile within Indonesia. Indonesian national, no
+    sponsorship required. English: EF SET C1 Advanced.</p>
+    <ul class="contact-list">
+      <li><span class="ck">Email</span><a href="mailto:rafi.afabian@gmail.com">rafi.afabian@gmail.com</a></li>
+      <li><span class="ck">Phone</span><a href="tel:+6281221024572">+62 812-2102-4572</a></li>
+      <li><span class="ck">LinkedIn</span><a href="https://linkedin.com/in/rafi-ahmad-fabiannaufal">/in/rafi-ahmad-fabiannaufal</a></li>
+      <li><span class="ck">Institution</span><span style="font-family:'IBM Plex Mono',monospace;font-size:15px">Institut Teknologi Bandung</span></li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  Rafi Ahmad Fabiannaufal &nbsp;·&nbsp; Electrical Engineering, Institut Teknologi Bandung &nbsp;·&nbsp; Bandung, Indonesia
+</footer>
+
+<script>
+(function(){
+  ["tA","tB"].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el || !el.getTotalLength) return;
+    var L = el.getTotalLength();
+    el.style.setProperty("--len", L);
+  });
+})();
+</script>
+
+</body>
+</html>
